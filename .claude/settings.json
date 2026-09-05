@@ -1,18 +1,24 @@
 {
   "permissions": {
     "allow": [
-      "Read", "Edit",
-      "Bash(git status)", "Bash(git diff:*)", "Bash(git log:*)",
-      "Bash(npm test)", "Bash(npm run lint)", "Bash(npm run build)"
+      "Read",
+      "Edit",
+      "Bash(git status)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(npm test)",
+      "Bash(npm run lint)",
+      "Bash(npm run build)",
+      "Bash(git commit:*)"
     ],
-    "ask": [
-      "Bash(git push:*)", "Bash(git commit:*)",
-      "Bash(docker:*)"
-    ],
+    "ask": ["Bash(git push:*)", "Bash(docker:*)"],
     "deny": [
       "Read(./.env*)",
-      "Read(~/.ssh/**)", "Read(~/.aws/**)", "Read(~/.gnupg/**)",
-      "Bash(curl:*)", "Bash(wget:*)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.gnupg/**)",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
       "Bash(npm install:*)",
       "Bash(rm -rf:*)",
       "WebFetch"
