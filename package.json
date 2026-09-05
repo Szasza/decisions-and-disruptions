@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "biome check",
     "format": "biome format --write",
-    "prepare": "husky"
+    "prepare": "husky",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "test": "vitest run"
   },
   "dependencies": {
     "next": "16.3.4",
@@ -34,6 +37,18 @@
     "husky": "^9.1.7",
     "semantic-release": "^25.0.9",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "storybook": "^10.6.0",
+    "@storybook/nextjs-vite": "^10.6.0",
+    "@chromatic-com/storybook": "latest",
+    "@storybook/addon-vitest": "^10.6.0",
+    "@storybook/addon-a11y": "^10.6.0",
+    "@storybook/addon-docs": "^10.6.0",
+    "@storybook/addon-mcp": "^10.6.0",
+    "vite": "latest",
+    "vitest": "latest",
+    "playwright": "latest",
+    "@vitest/browser-playwright": "latest",
+    "@vitest/coverage-v8": "latest"
   }
 }

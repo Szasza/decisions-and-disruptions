@@ -1,1 +1,1 @@
-@AGENTS.md
+@.claude/rules/component-development.md
