@@ -1,12 +1,12 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import nextEnv from '@next/env'
+import nextEnv from "@next/env";
 import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
 
 // Load environment variables from the project root
-nextEnv.loadEnvConfig(process.cwd())
+nextEnv.loadEnvConfig(process.cwd());
 
 const dirname =
   typeof import.meta.dirname !== "undefined"
@@ -32,6 +32,18 @@ export default defineConfig({
             provider: playwright({}),
             instances: [{ browser: "chromium" }],
           },
+        },
+      },
+      {
+        resolve: {
+          alias: {
+            "@": path.join(dirname, "src"),
+          },
+        },
+        test: {
+          name: "unit",
+          environment: "node",
+          include: ["src/lib/**/*.test.ts"],
         },
       },
     ],
