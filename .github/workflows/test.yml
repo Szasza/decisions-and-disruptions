@@ -34,3 +34,6 @@ jobs:
 
       - name: Run Playwright tests
         run: npm run test
+        env:
+          NEXT_PUBLIC_APP_URL: ${{ vars.NEXT_PUBLIC_APP_URL }}
+          STORYBOOK_DISABLE_TELEMETRY: ${{ vars.STORYBOOK_DISABLE_TELEMETRY }}
