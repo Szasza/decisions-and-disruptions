@@ -13,5 +13,24 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
-      - run: npm run test
+      - name: Cache Playwright Chromium
+        id: playwright-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+
+      # If the cache misses, download Chromium and its OS-level system dependencies
+      - name: Install Playwright Chromium + Deps (Cache Miss)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      # If the cache hits, only install the OS-level system dependencies (fast)
+      - name: Install Playwright Deps Only (Cache Hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - name: Run Playwright tests
+        run: npm run test
