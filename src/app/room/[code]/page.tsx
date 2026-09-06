@@ -40,9 +40,7 @@ export default async function RoomPage({
 
   const headersList = await headers();
   const host = headersList.get("host") ?? "localhost:3000";
-  const protocol =
-    headersList.get("x-forwarded-proto") ??
-    (host.includes("localhost") ? "http" : "https");
+  const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
   const shareUrl = `${protocol}://${host}/room/${code}`;
 
   return (
