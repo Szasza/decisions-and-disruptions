@@ -77,6 +77,7 @@ export function RoomLobby({
             key={participant.id}
             participant={participant}
             isCurrentParticipant={participant.id === currentParticipantId}
+            isGameMaster={participant.id === room.hostParticipantId}
           />
         ))}
       </div>

@@ -1,5 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, fn, userEvent, within } from "storybook/test";
+import {
+  expect,
+  fn,
+  userEvent,
+  waitForElementToBeRemoved,
+  within,
+} from "storybook/test";
 
 import type { Game } from "@/lib/games/types";
 import type { Room } from "@/lib/rooms/types";
@@ -74,6 +80,7 @@ export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Ada")).toBeVisible();
+    await expect(canvas.getByText("Game Master")).toBeVisible();
     await expect(
       canvas.getByDisplayValue("https://example.com/room/AB12CD"),
     ).toBeVisible();
@@ -116,6 +123,73 @@ export const ReceivesARealtimeUpdate: Story = {
     source.onmessage?.({ data: JSON.stringify(updatedRoom) });
 
     await expect(await canvas.findByText("Grace")).toBeVisible();
+  },
+};
+
+export const GameMasterReassignedLive: Story = {
+  args: {
+    initialRoom: {
+      ...sampleRoom,
+      participants: [
+        ...sampleRoom.participants,
+        {
+          id: "participant-2",
+          displayName: "Grace",
+          joinedAt: 2000,
+          lastSeenAt: 2000,
+        },
+      ],
+    },
+    roomCode: sampleRoom.code,
+    currentParticipantId: "participant-2",
+    game: sampleGame,
+    shareUrl: "https://example.com/room/AB12CD",
+  },
+  beforeEach: () => {
+    FakeEventSource.instances = [];
+    globalThis.EventSource =
+      FakeEventSource as unknown as typeof globalThis.EventSource;
+    globalThis.fetch = fn().mockResolvedValue({ status: 200 }) as never;
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    // Ada (participant-1) starts as Game Master; Grace (participant-2, the
+    // viewer in this story) is not.
+    await expect(canvas.getByText("Ada")).toBeVisible();
+    await expect(canvas.getByText("Game Master")).toBeVisible();
+
+    // Simulate the server reassigning the Game Master after Ada leaves or
+    // goes stale — the store already broadcasts the updated room (with a
+    // new hostParticipantId) to every subscriber over SSE, so this proves
+    // every joined client's UI picks up the reassignment live, with no
+    // action from the viewer.
+    const roomAfterHostLeft: Room = {
+      ...sampleRoom,
+      hostParticipantId: "participant-2",
+      participants: [
+        {
+          id: "participant-2",
+          displayName: "Grace",
+          joinedAt: 2000,
+          lastSeenAt: 2000,
+        },
+      ],
+    };
+
+    const adaBefore = canvas.getByText("Ada");
+    const source =
+      FakeEventSource.instances[FakeEventSource.instances.length - 1];
+    source.onmessage?.({ data: JSON.stringify(roomAfterHostLeft) });
+
+    // Wait for the state update triggered by onmessage to actually commit
+    // (Ada's row is removed) rather than racing it with a plain query.
+    await waitForElementToBeRemoved(adaBefore);
+
+    // The badge now sits on Grace's row (the viewer), alongside "(you)".
+    const graceRow = canvas.getByText("Grace").closest("div");
+    await expect(
+      graceRow ? within(graceRow).getByText("Game Master") : null,
+    ).toBeVisible();
   },
 };
 

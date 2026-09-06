@@ -33,6 +33,7 @@ export const CurrentParticipant: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Ada")).toBeVisible();
     await expect(canvas.getByText("(you)")).toBeVisible();
+    await expect(canvas.queryByText("Game Master")).not.toBeInTheDocument();
     await expect(canvas.getByText("joined 1m ago")).toBeVisible();
   },
 };
@@ -51,6 +52,22 @@ export const OtherParticipant: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Grace")).toBeVisible();
     await expect(canvas.queryByText("(you)")).not.toBeInTheDocument();
+    await expect(canvas.queryByText("Game Master")).not.toBeInTheDocument();
     await expect(canvas.getByText("joined 1m ago")).toBeVisible();
+  },
+};
+
+export const GameMaster: Story = {
+  args: {
+    participant: sampleParticipant,
+    isCurrentParticipant: false,
+    isGameMaster: true,
+    now: 1000 + 65_000,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Ada")).toBeVisible();
+    await expect(canvas.getByText("Game Master")).toBeVisible();
+    await expect(canvas.queryByText("(you)")).not.toBeInTheDocument();
   },
 };

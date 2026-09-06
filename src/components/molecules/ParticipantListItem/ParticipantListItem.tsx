@@ -5,12 +5,14 @@ import type { Participant } from "@/lib/rooms/types";
 export interface ParticipantListItemProps {
   participant: Participant;
   isCurrentParticipant?: boolean;
+  isGameMaster?: boolean;
   now?: number;
 }
 
 export function ParticipantListItem({
   participant,
   isCurrentParticipant = false,
+  isGameMaster = false,
   now,
 }: ParticipantListItemProps): JSX.Element {
   const relativeTime = formatRelativeTime(
@@ -32,6 +34,11 @@ export function ParticipantListItem({
         </span>
         {isCurrentParticipant && (
           <span className="text-xs font-medium text-sky-400">(you)</span>
+        )}
+        {isGameMaster && (
+          <span className="text-xs font-medium text-amber-400">
+            Game Master
+          </span>
         )}
       </div>
       <span className="text-xs text-slate-400">joined {relativeTime}</span>
