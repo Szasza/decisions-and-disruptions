@@ -50,5 +50,8 @@
     "playwright": "latest",
     "@vitest/browser-playwright": "latest",
     "@vitest/coverage-v8": "latest"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
   }
 }
