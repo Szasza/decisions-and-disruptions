@@ -38,3 +38,25 @@ export const Default: Story = {
     await expect(await canvas.findByText("Copied!")).toBeVisible();
   },
 };
+
+export const FocusSelectsEntireValue: Story = {
+  args: {
+    url: sampleUrl,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const input = canvas.getByDisplayValue(sampleUrl) as HTMLInputElement;
+
+    // Focusing the read-only input should select its whole value, so a user
+    // can copy it with a keyboard shortcut immediately, without needing to
+    // manually drag-select the text first. A direct `.focus()` call (rather
+    // than a simulated mouse click) is used deliberately: clicking would
+    // also fire a native mouseup that repositions the caret to the click
+    // point, immediately collapsing the selection this handler just made —
+    // a real browser quirk unrelated to the onFocus handler under test.
+    input.focus();
+
+    await expect(input.selectionStart).toBe(0);
+    await expect(input.selectionEnd).toBe(sampleUrl.length);
+  },
+};

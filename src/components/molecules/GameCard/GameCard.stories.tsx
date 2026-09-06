@@ -70,3 +70,50 @@ export const NoMeta: Story = {
     await expect(canvas.getByText("Mystery Game")).toBeVisible();
   },
 };
+
+export const MinPlayersOnly: Story = {
+  args: {
+    game: {
+      id: "min-only-game",
+      name: "Open-Ended Game",
+      description: "A game with only a minimum player count set.",
+      minPlayers: 3,
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("3 players")).toBeVisible();
+  },
+};
+
+export const MaxPlayersOnly: Story = {
+  args: {
+    game: {
+      id: "max-only-game",
+      name: "Capped Game",
+      description: "A game with only a maximum player count set.",
+      maxPlayers: 6,
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("6 players")).toBeVisible();
+  },
+};
+
+export const EqualMinAndMaxPlayers: Story = {
+  args: {
+    game: {
+      id: "fixed-count-game",
+      name: "Fixed-Size Game",
+      description: "A game that always requires exactly four players.",
+      minPlayers: 4,
+      maxPlayers: 4,
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    // Equal min/max collapses to a single count rather than "4–4 players".
+    await expect(canvas.getByText("4 players")).toBeVisible();
+  },
+};

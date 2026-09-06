@@ -171,6 +171,124 @@ describe("createRoomStore", () => {
     expect(after?.hostParticipantId).toBe("p2");
   });
 
+  describe("leaveRoom edge cases", () => {
+    it("is a no-op for an unknown room code", () => {
+      const store = createRoomStore();
+      expect(() => store.leaveRoom("NOPE12", "p1")).not.toThrow();
+    });
+
+    it("is a no-op when the participant is not in the room", () => {
+      const store = createRoomStore();
+      const { room } = store.createRoom({
+        gameId: "decisions-and-disruptions",
+        hostDisplayName: "Alice",
+        hostParticipantId: "host-1",
+      });
+
+      store.leaveRoom(room.code, "not-a-participant");
+
+      const after = store.getRoom(room.code);
+      expect(after?.participants).toHaveLength(1);
+      expect(after?.hostParticipantId).toBe("host-1");
+    });
+
+    it("leaves hostParticipantId unchanged when a non-host participant leaves", () => {
+      const store = createRoomStore();
+      const { room } = store.createRoom({
+        gameId: "decisions-and-disruptions",
+        hostDisplayName: "Alice",
+        hostParticipantId: "host-1",
+      });
+      store.joinRoom(room.code, { participantId: "p2", displayName: "Bob" });
+
+      store.leaveRoom(room.code, "p2");
+
+      const after = store.getRoom(room.code);
+      expect(after?.participants.map((p) => p.id)).toEqual(["host-1"]);
+      expect(after?.hostParticipantId).toBe("host-1");
+    });
+
+    it("reassigns the host to the earliest-joined remaining participant when multiple remain", () => {
+      vi.useFakeTimers();
+      const store = createRoomStore();
+      const { room } = store.createRoom({
+        gameId: "decisions-and-disruptions",
+        hostDisplayName: "Alice",
+        hostParticipantId: "host-1",
+      });
+
+      // Distinct joinedAt timestamps so the reassignment's sort is
+      // unambiguous, rather than relying on insertion-order tie-breaking.
+      vi.setSystemTime(Date.now() + 1_000);
+      store.joinRoom(room.code, { participantId: "p2", displayName: "Bob" });
+      vi.setSystemTime(Date.now() + 1_000);
+      store.joinRoom(room.code, { participantId: "p3", displayName: "Carla" });
+
+      store.leaveRoom(room.code, "host-1");
+
+      const after = store.getRoom(room.code);
+      expect(after?.participants.map((p) => p.id)).toEqual(["p2", "p3"]);
+      expect(after?.hostParticipantId).toBe("p2");
+    });
+  });
+
+  describe("touchParticipant edge cases", () => {
+    it("returns false for an unknown room code", () => {
+      const store = createRoomStore();
+      expect(store.touchParticipant("NOPE12", "p1")).toBe(false);
+    });
+
+    it("returns false when the participant is not in the room", () => {
+      const store = createRoomStore();
+      const { room } = store.createRoom({
+        gameId: "decisions-and-disruptions",
+        hostDisplayName: "Alice",
+        hostParticipantId: "host-1",
+      });
+
+      expect(store.touchParticipant(room.code, "not-a-participant")).toBe(
+        false,
+      );
+    });
+  });
+
+  describe("subscribe", () => {
+    it("notifies a subscriber with the updated room when it changes", () => {
+      const store = createRoomStore();
+      const { room } = store.createRoom({
+        gameId: "decisions-and-disruptions",
+        hostDisplayName: "Alice",
+        hostParticipantId: "host-1",
+      });
+
+      const listener = vi.fn();
+      store.subscribe(room.code, listener);
+
+      store.joinRoom(room.code, { participantId: "p2", displayName: "Bob" });
+
+      expect(listener).toHaveBeenCalledTimes(1);
+      const [notifiedRoom] = listener.mock.calls[0];
+      expect(notifiedRoom.participants).toHaveLength(2);
+    });
+
+    it("stops notifying once unsubscribed", () => {
+      const store = createRoomStore();
+      const { room } = store.createRoom({
+        gameId: "decisions-and-disruptions",
+        hostDisplayName: "Alice",
+        hostParticipantId: "host-1",
+      });
+
+      const listener = vi.fn();
+      const unsubscribe = store.subscribe(room.code, listener);
+      unsubscribe();
+
+      store.joinRoom(room.code, { participantId: "p2", displayName: "Bob" });
+
+      expect(listener).not.toHaveBeenCalled();
+    });
+  });
+
   describe("heartbeat / TTL sweep", () => {
     it("keeps a participant present just under STALE_AFTER_MS", () => {
       vi.useFakeTimers();
@@ -219,5 +337,36 @@ describe("createRoomStore", () => {
 
       expect(store.getRoom(room.code)?.participants).toHaveLength(1);
     });
+  });
+});
+
+describe("roomStore singleton caching", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    globalThis.__ddRoomStore = undefined;
+    vi.resetModules();
+  });
+
+  it("does not cache the store on globalThis in production", async () => {
+    vi.resetModules();
+    globalThis.__ddRoomStore = undefined;
+    vi.stubEnv("NODE_ENV", "production");
+
+    await import("@/lib/rooms/store");
+
+    // In production, each fresh module evaluation must build its own store
+    // rather than caching it on globalThis (that cache exists only to
+    // survive Next.js dev-server HMR re-evaluation of this module).
+    expect(globalThis.__ddRoomStore).toBeUndefined();
+  });
+
+  it("caches the store on globalThis outside production", async () => {
+    vi.resetModules();
+    globalThis.__ddRoomStore = undefined;
+    vi.stubEnv("NODE_ENV", "test");
+
+    const { roomStore } = await import("@/lib/rooms/store");
+
+    expect(globalThis.__ddRoomStore).toBe(roomStore);
   });
 });

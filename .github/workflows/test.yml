@@ -3,6 +3,10 @@ name: Tests
 on:
   pull_request:
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -36,3 +40,15 @@ jobs:
         env:
           NEXT_PUBLIC_APP_URL: ${{ vars.NEXT_PUBLIC_APP_URL }}
           STORYBOOK_DISABLE_TELEMETRY: ${{ vars.STORYBOOK_DISABLE_TELEMETRY }}
+
+      - name: Report coverage on PR
+        if: ${{ !cancelled() }}
+        uses: davelosert/vitest-coverage-report-action@v2
+
+      - name: Upload full coverage report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 30

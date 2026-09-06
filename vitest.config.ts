@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import nextEnv from "@next/env";
 import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
 import { playwright } from "@vitest/browser-playwright";
-import { defineConfig } from "vitest/config";
+import { coverageConfigDefaults, defineConfig } from "vitest/config";
 
 // Load environment variables from the project root
 nextEnv.loadEnvConfig(process.cwd());
@@ -16,6 +16,20 @@ const dirname =
 // More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
 export default defineConfig({
   test: {
+    coverage: {
+      enabled: true,
+      provider: "v8",
+      reporter: ["text", "html", "lcov", "json-summary", "json"],
+      reportsDirectory: "coverage",
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: [
+        ...coverageConfigDefaults.exclude,
+        "src/**/*.stories.tsx",
+        "src/**/*.test.ts",
+        "src/app/**",
+        "src/**/types.ts",
+      ],
+    },
     projects: [
       {
         extends: true,
@@ -43,7 +57,7 @@ export default defineConfig({
         test: {
           name: "unit",
           environment: "node",
-          include: ["src/lib/**/*.test.ts"],
+          include: ["src/**/*.test.ts"],
         },
       },
     ],
