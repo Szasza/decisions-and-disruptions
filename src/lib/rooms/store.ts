@@ -1,0 +1,226 @@
+import { EventEmitter } from "node:events";
+import { generateRoomCode } from "@/lib/rooms/codes";
+import { STALE_AFTER_MS, SWEEP_TICK_MS } from "@/lib/rooms/constants";
+import type { Participant, Room } from "@/lib/rooms/types";
+
+export interface CreateRoomInput {
+  gameId: string;
+  hostDisplayName: string;
+  hostParticipantId: string;
+}
+
+export interface CreateRoomResult {
+  room: Room;
+  hostParticipant: Participant;
+}
+
+export interface JoinRoomInput {
+  participantId: string;
+  displayName: string;
+}
+
+export type JoinRoomResult =
+  | { ok: true; room: Room; participant: Participant }
+  | { ok: false; reason: "room-not-found" };
+
+export interface RoomStore {
+  createRoom(input: CreateRoomInput): CreateRoomResult;
+  getRoom(code: string): Room | undefined;
+  joinRoom(code: string, input: JoinRoomInput): JoinRoomResult;
+  leaveRoom(code: string, participantId: string): void;
+  touchParticipant(code: string, participantId: string): boolean;
+  subscribe(code: string, listener: (room: Room) => void): () => void;
+}
+
+const MAX_DISPLAY_NAME_LENGTH = 40;
+
+/**
+ * Server-side guard: the client form already blocks empty submissions, but
+ * these Server Actions are directly-invokable endpoints (not gated behind
+ * `<form action>`), so a request can reach here with an empty, whitespace-only,
+ * or arbitrarily long `displayName`. Reject/trim here rather than trusting the
+ * client — an unbounded name would otherwise be broadcast verbatim to every
+ * SSE subscriber on every roster change and bloat the room record forever.
+ */
+function sanitizeDisplayName(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    throw new Error("Display name is required");
+  }
+  return trimmed.slice(0, MAX_DISPLAY_NAME_LENGTH);
+}
+
+function cloneParticipant(participant: Participant): Participant {
+  return { ...participant };
+}
+
+function cloneRoom(room: Room): Room {
+  return { ...room, participants: room.participants.map(cloneParticipant) };
+}
+
+/**
+ * Reassigns `hostParticipantId` after a participant is removed from a room:
+ * if the removed participant was the host, the next-remaining participant
+ * (earliest `joinedAt`) becomes host; if the room is now empty, the host id
+ * is cleared to "" since an empty room has no meaningful host.
+ */
+function reassignHostIfNeeded(room: Room, removedParticipantId: string): void {
+  if (room.hostParticipantId !== removedParticipantId) {
+    return;
+  }
+  if (room.participants.length === 0) {
+    room.hostParticipantId = "";
+    return;
+  }
+  const nextHost = [...room.participants].sort(
+    (a, b) => a.joinedAt - b.joinedAt,
+  )[0];
+  room.hostParticipantId = nextHost.id;
+}
+
+export function createRoomStore(): RoomStore {
+  const rooms = new Map<string, Room>();
+  const emitter = new EventEmitter();
+  emitter.setMaxListeners(100);
+
+  function emitUpdate(room: Room): void {
+    emitter.emit(room.code, cloneRoom(room));
+  }
+
+  const store: RoomStore = {
+    createRoom({ gameId, hostDisplayName, hostParticipantId }) {
+      const code = generateRoomCode((candidate) => rooms.has(candidate));
+      const now = Date.now();
+      const hostParticipant: Participant = {
+        id: hostParticipantId,
+        displayName: sanitizeDisplayName(hostDisplayName),
+        joinedAt: now,
+        lastSeenAt: now,
+      };
+      const room: Room = {
+        code,
+        gameId,
+        hostParticipantId: hostParticipant.id,
+        participants: [hostParticipant],
+        status: "waiting",
+        createdAt: now,
+      };
+      rooms.set(code, room);
+      return {
+        room: cloneRoom(room),
+        hostParticipant: cloneParticipant(hostParticipant),
+      };
+    },
+
+    getRoom(code) {
+      const room = rooms.get(code);
+      return room ? cloneRoom(room) : undefined;
+    },
+
+    joinRoom(code, { participantId, displayName }) {
+      const room = rooms.get(code);
+      if (!room) {
+        return { ok: false, reason: "room-not-found" };
+      }
+
+      const sanitizedDisplayName = sanitizeDisplayName(displayName);
+      const now = Date.now();
+      const existing = room.participants.find((p) => p.id === participantId);
+      let participant: Participant;
+      if (existing) {
+        existing.displayName = sanitizedDisplayName;
+        existing.lastSeenAt = now;
+        participant = existing;
+      } else {
+        participant = {
+          id: participantId,
+          displayName: sanitizedDisplayName,
+          joinedAt: now,
+          lastSeenAt: now,
+        };
+        room.participants.push(participant);
+      }
+
+      emitUpdate(room);
+      return {
+        ok: true,
+        room: cloneRoom(room),
+        participant: cloneParticipant(participant),
+      };
+    },
+
+    leaveRoom(code, participantId) {
+      const room = rooms.get(code);
+      if (!room) {
+        return;
+      }
+      const index = room.participants.findIndex((p) => p.id === participantId);
+      if (index === -1) {
+        return;
+      }
+      room.participants.splice(index, 1);
+      reassignHostIfNeeded(room, participantId);
+      emitUpdate(room);
+    },
+
+    touchParticipant(code, participantId) {
+      const room = rooms.get(code);
+      if (!room) {
+        return false;
+      }
+      const participant = room.participants.find((p) => p.id === participantId);
+      if (!participant) {
+        return false;
+      }
+      participant.lastSeenAt = Date.now();
+      return true;
+    },
+
+    subscribe(code, listener) {
+      emitter.on(code, listener);
+      return () => {
+        emitter.off(code, listener);
+      };
+    },
+  };
+
+  const sweep = setInterval(() => {
+    const now = Date.now();
+    for (const room of rooms.values()) {
+      const staleParticipants = room.participants.filter(
+        (p) => now - p.lastSeenAt > STALE_AFTER_MS,
+      );
+      if (staleParticipants.length === 0) {
+        continue;
+      }
+      room.participants = room.participants.filter(
+        (p) => now - p.lastSeenAt <= STALE_AFTER_MS,
+      );
+      for (const stale of staleParticipants) {
+        reassignHostIfNeeded(room, stale.id);
+      }
+      emitUpdate(room);
+    }
+  }, SWEEP_TICK_MS);
+  sweep.unref();
+
+  return store;
+}
+
+// The globalThis cache below exists ONLY to survive Next.js dev-server HMR
+// re-evaluation of this module (otherwise every save during `next dev` would
+// re-run createRoomStore(), wiping all rooms and orphaning the previous
+// sweep interval). It does NOT make this store safe across multiple
+// processes/replicas — this store is explicitly an in-memory,
+// single-process, dev-only design, which is an accepted, deliberate
+// limitation of this feature rather than something to fix here.
+declare global {
+  var __ddRoomStore: RoomStore | undefined;
+}
+
+const store = globalThis.__ddRoomStore ?? createRoomStore();
+if (process.env.NODE_ENV !== "production") {
+  globalThis.__ddRoomStore = store;
+}
+
+export const roomStore = store;

@@ -11,13 +11,19 @@ export default function Home() {
           Turn complex choices into decisive action.
         </h1>
         <p className="mt-5 max-w-xl text-base leading-7 text-slate-300 sm:text-lg">
-          A focused workspace for tracking strategic decisions, surfacing disruption signals,
-          and aligning teams around what matters most.
+          A focused workspace for tracking strategic decisions, surfacing
+          disruption signals, and aligning teams around what matters most.
         </p>
         <div className="mt-8 flex flex-col gap-4 sm:flex-row">
           <Link
-            href="/login"
+            href="/games"
             className="inline-flex items-center justify-center rounded-xl bg-sky-500 px-5 py-3 font-medium text-slate-950 transition hover:bg-sky-400"
+          >
+            Browse games
+          </Link>
+          <Link
+            href="/login"
+            className="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-800 px-5 py-3 font-medium text-slate-100 transition hover:border-slate-500 hover:bg-slate-700"
           >
             Log in
           </Link>
