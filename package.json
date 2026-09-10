@@ -39,7 +39,7 @@
     "husky": "^9.1.7",
     "semantic-release": "^25.0.9",
     "tailwindcss": "^4",
-    "typescript": "^5",
+    "typescript": "^7",
     "storybook": "^10.6.0",
     "@storybook/nextjs-vite": "^10.6.0",
     "@chromatic-com/storybook": "latest",
