@@ -27,6 +27,10 @@ const firewallOffice = getDefenceByName("Firewall office")!;
 // biome-ignore lint/style/noNonNullAssertion: names are hardcoded from the real catalog
 const cctvOffice = getDefenceByName("CCTV office")!;
 // biome-ignore lint/style/noNonNullAssertion: names are hardcoded from the real catalog
+const cctvPlant = getDefenceByName("CCTV plant")!;
+// biome-ignore lint/style/noNonNullAssertion: names are hardcoded from the real catalog
+const antivirus = getDefenceByName("Antivirus")!;
+// biome-ignore lint/style/noNonNullAssertion: names are hardcoded from the real catalog
 const assetAudit = getDefenceByName("Asset audit")!;
 
 const midGameState: GameState = {
@@ -117,6 +121,29 @@ export const EndRoundOverBudgetError: Story = {
     await expect(
       canvas.getByText("Cart total (150k) exceeds available budget (100k)."),
     ).toBeVisible();
+  },
+};
+
+export const OverBudgetCart: Story = {
+  args: {
+    game: {
+      phase: "round",
+      round: 1,
+      ownedDefences: [],
+      cart: [cctvOffice, cctvPlant, antivirus], // 130k > the 100k round-1 budget
+      revealHistory: [],
+    },
+    isHost: true,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const readout = canvas.getByText("130k / 100k");
+    await expect(readout).toHaveClass("text-rose-400");
+    const filled = canvasElement.querySelector(
+      "[aria-hidden='true'] > div",
+    ) as HTMLElement;
+    await expect(filled).toHaveClass("bg-rose-500");
+    await expect(canvas.getByText("Remaining after cart: -30k")).toBeVisible();
   },
 };
 

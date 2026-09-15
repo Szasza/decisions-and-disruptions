@@ -41,16 +41,19 @@ export function DefenceShop({
     0,
   );
   const cartTotal = game.cart.reduce((sum, defence) => sum + defence.cost, 0);
-  const remainingAfterCart = allowance - spent - cartTotal;
+  const totalSpent = spent + cartTotal;
+  const remainingAfterCart = allowance - totalSpent;
+  const isOverBudget = totalSpent > allowance;
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
         <ProgressBar
           label="Budget spent"
-          value={spent + cartTotal}
+          value={totalSpent}
           max={allowance}
           formatValue={(value, max) => `${value}k / ${max}k`}
+          variant={isOverBudget ? "danger" : "default"}
         />
         <p className="text-sm text-slate-400">
           Remaining after cart: {remainingAfterCart}k

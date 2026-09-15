@@ -72,3 +72,22 @@ export const WithCustomFormat: Story = {
     await expect(canvas.getByText("8k / 16k")).toBeVisible();
   },
 };
+
+export const Danger: Story = {
+  args: {
+    label: "Budget spent",
+    value: 130,
+    max: 100,
+    formatValue: (value, max) => `${value}k / ${max}k`,
+    variant: "danger",
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const readout = canvas.getByText("130k / 100k");
+    await expect(readout).toHaveClass("text-rose-400");
+    const filled = canvasElement.querySelector(
+      "[aria-hidden='true'] > div",
+    ) as HTMLElement;
+    await expect(filled).toHaveClass("bg-rose-500");
+  },
+};
