@@ -26,12 +26,11 @@ export interface GameStore {
   /** Host-only transition: "setup" -> "round" 1, committing the final GameSettings. */
   startGame(code: string, settings: GameSettings): GameState | undefined;
   /**
-   * Adding/removing is idempotent (adding an already-present defence, or
-   * removing an absent one, is a no-op success) rather than an error — this
-   * keeps concurrent edits from the shared cart safe: two participants
-   * racing to add the same defence, or one removing what another just
-   * removed, both just settle on the same end state instead of surfacing a
-   * spurious failure to either client.
+   * Host-only (enforced by the caller, e.g. the `/game/cart` route). Adding
+   * an already-present defence, or removing an absent one, is a no-op
+   * success rather than an error — this keeps things safe against a
+   * double-click or a retried request settling on the same end state
+   * instead of surfacing a spurious failure.
    */
   updateCart(
     code: string,

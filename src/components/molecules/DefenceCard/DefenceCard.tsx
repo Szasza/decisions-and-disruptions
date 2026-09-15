@@ -10,6 +10,14 @@ export interface DefenceCardProps {
   state: DefenceCardState;
   onAdd?: () => void;
   onRemove?: () => void;
+  /**
+   * Whether the buy/unbuy control renders at all. Only the game master may
+   * edit the shared cart — a non-host viewer should still see cost/category/
+   * cart-membership (e.g. the "In cart" indicator) but never a clickable
+   * "Add to cart"/"Remove" button, so this defaults to `true` and callers
+   * (namely `DefenceShop`) pass `isHost` through explicitly.
+   */
+  canEdit?: boolean;
 }
 
 export function DefenceCard({
@@ -17,6 +25,7 @@ export function DefenceCard({
   state,
   onAdd,
   onRemove,
+  canEdit = true,
 }: DefenceCardProps): JSX.Element {
   const isOwned = state === "owned";
 
@@ -34,13 +43,17 @@ export function DefenceCard({
         <span className="text-sm text-slate-400">{defence.cost}k</span>
       </div>
       <CategoryBadge category={defence.category} />
-      {state === "available" && <Button onClick={onAdd}>Add to cart</Button>}
+      {state === "available" && canEdit && (
+        <Button onClick={onAdd}>Add to cart</Button>
+      )}
       {state === "in-cart" && (
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs font-medium text-sky-400">In cart</span>
-          <Button variant="secondary" onClick={onRemove}>
-            Remove
-          </Button>
+          {canEdit && (
+            <Button variant="secondary" onClick={onRemove}>
+              Remove
+            </Button>
+          )}
         </div>
       )}
       {isOwned && (

@@ -79,6 +79,17 @@ export const NonHost: Story = {
     expect(
       canvas.queryByRole("button", { name: "End Round" }),
     ).not.toBeInTheDocument();
+
+    // Only the game master may edit the shared cart — a non-host viewer
+    // sees the shop (including the "In cart" indicator) but no buy/unbuy
+    // buttons at all.
+    expect(
+      canvas.queryByRole("button", { name: "Add to cart" }),
+    ).not.toBeInTheDocument();
+    expect(
+      canvas.queryByRole("button", { name: "Remove" }),
+    ).not.toBeInTheDocument();
+    await expect(canvas.getByText("In cart")).toBeVisible();
   },
 };
 

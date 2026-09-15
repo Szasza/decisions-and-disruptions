@@ -16,12 +16,12 @@ export async function POST(
   const cookieStore = await cookies();
   const participantId = cookieStore.get("dd_player_id")?.value;
   const room = roomStore.getRoom(code);
-  if (
-    !participantId ||
-    !room?.participants.some((p) => p.id === participantId)
-  ) {
+  if (!room) {
+    return Response.json({ error: "not-found" }, { status: 404 });
+  }
+  if (!participantId || room.hostParticipantId !== participantId) {
     return Response.json(
-      { error: "Not a participant in this room" },
+      { error: "Only the host can edit the cart" },
       { status: 403 },
     );
   }

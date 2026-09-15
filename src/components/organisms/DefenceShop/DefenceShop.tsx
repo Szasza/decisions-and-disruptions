@@ -8,6 +8,7 @@ import type { GameState } from "@/lib/decisions-disruptions/types";
 
 export interface DefenceShopProps {
   game: GameState;
+  /** Gates both the cart's buy/unbuy controls and the "End Round" button — only the game master edits the shared cart or advances the round. */
   isHost: boolean;
   onAddToCart: (defenceName: string) => void | Promise<void>;
   onRemoveFromCart: (defenceName: string) => void | Promise<void>;
@@ -62,6 +63,7 @@ export function DefenceShop({
             key={defence.name}
             defence={defence}
             state={cardStateFor(game, defence.name)}
+            canEdit={isHost}
             onAdd={() => onAddToCart(defence.name)}
             onRemove={() => onRemoveFromCart(defence.name)}
           />

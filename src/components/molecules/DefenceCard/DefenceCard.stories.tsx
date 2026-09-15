@@ -72,6 +72,42 @@ export const Owned: Story = {
   },
 };
 
+export const AvailableReadOnly: Story = {
+  args: {
+    defence: {
+      name: "Firewall",
+      cost: 20,
+      category: "cyber_defence",
+      hidden: false,
+    },
+    state: "available",
+    canEdit: false,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Firewall")).toBeVisible();
+    expect(canvas.queryByRole("button")).not.toBeInTheDocument();
+  },
+};
+
+export const InCartReadOnly: Story = {
+  args: {
+    defence: {
+      name: "Firewall",
+      cost: 20,
+      category: "cyber_defence",
+      hidden: false,
+    },
+    state: "in-cart",
+    canEdit: false,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("In cart")).toBeVisible();
+    expect(canvas.queryByRole("button")).not.toBeInTheDocument();
+  },
+};
+
 export const HiddenDefenceStillRendersWhenPassedExplicitly: Story = {
   args: {
     defence: {
