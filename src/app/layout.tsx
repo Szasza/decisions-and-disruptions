@@ -14,7 +14,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Decisions & Disruptions",
-  description: "A digital workspace for critical decisions and strategic disruptions.",
+  description:
+    "A digital workspace for critical decisions and strategic disruptions.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
